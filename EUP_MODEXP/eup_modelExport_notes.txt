@@ -1,0 +1,15 @@
+Tool#2 - EagleUp Reverse Export Tool#2
+
+TASKS
+
+1) Add EUP -> SKP link. Use Model Attribute Dictionary
+		Example:
+		model = Sketchup.active_model
+		value = model.set_attribute "testdictionary", "test", 115
+		attrdicts = model.attribute_dictionaries
+		attrdict = attrdicts["testdictionary"]
+
+		# value will contain 115
+		value = attrdict["test"]
+		
+2) 
