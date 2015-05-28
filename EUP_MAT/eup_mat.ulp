@@ -1,0 +1,316 @@
+/*
+Copyright 2011 B.Simmons. All rights reserved.
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License 
+as published by the Free Software Foundation; either version 2 of the License, or any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty 
+of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to 
+the Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ 
+ http://opensource.org/licenses/GPL-2.0
+ */
+
+// Eagle Up - Model Attribute Tool v0.1
+
+
+#usage "<b>Eagle Up - Model Attribute Tool</b>\n"
+	   "<p>Simplfies the process of assigning Sketchup models to the eagleUp attribute in the board editor"
+	   "<p><author>Author: brad.simmons.va@gmail.com</author>"
+
+#require 5.0900 // to match EagleUp	   
+	   
+string modelPath = cfgget("eagleUp.model_path",""); //Code used from "eagleUp_export.ulp"  TODO: set check for no parameters
+
+//untested
+if (modelPath == ""){
+	int mb = dlgMessageBox("Please Run and initialize eagleUP, and reload this ULP!");
+	exit(0);
+}
+
+string board_dir;
+string board_name;
+int DEBUG_FLAG = 0; 	//globel debug flag
+int debugFirstCall = 1;	// Session Flag
+
+string cmd; 			// EXIT Command String 
+string cmdScript[]; 	//Exit Command string array for easier modification
+int cmdCount=0; 		// cmdScript count
+
+// Command Updating Functions
+void updateScript(int asDialog){
+	cmd = "";
+	if (cmdCount>0){
+		for (int i = 0; i<= cmdCount; i++){
+			cmd += cmdScript[i] + "\n";
+		}
+	}
+	// this flag looks to see if ULP was called from another ULP
+	if (asDialog == 1){
+		// if Calling ULP passed in an ULP PATH(argv[3]) then this appends a run command to the end of the exit CMD
+		if (argv[3] != "") cmd += "run \'" + argv[3] + "\'";
+	}
+}
+
+// Debug and Loging Function - To invoke the Debugger mannually set the DEBUG_FLAG = 1 (Above) or pass in 'debug' as parameter 1
+void debug(string dName, int dValueInt, string dValueStr){
+	// Outputs Log File to project dir standard call to "dName:dValueInt  or dName:dValueStr:dValueStr"
+	if (DEBUG_FLAG == 1){
+		int fError = fileerror();
+		int sF;
+		int mB;
+		string mBRst;
+		
+		output(board_dir+"\\eupUt_log.txt","at"){
+			if (debugFirstCall == 1){
+				int t = time();
+				sF = sprintf(mBRst,"EULP LOG for "+board_name + " Timestamp: %02d\n",t);
+				printf("\n\nEULP LOG for "+board_name + " Timestamp: %02d\n",t);
+				printf("------------------------------------------------------------------\n");
+				mB = dlgMessageBox("Debugger is active!\n "+ mBRst+" log file :" +board_dir+"\\eupUt_log.txt" );
+				debugFirstCall = 0; //Session Start
+			} else {
+				if (dValueStr == ""){
+					printf(dName + " : %02d\n", dValueInt);
+				} else {
+					printf(dName + " : " + dValueStr + ": %02d\n", dValueInt);
+			}	}
+		}
+		fError = fileerror();
+		if (fError != 0) {
+			sF = sprintf(mBRst,"%02d",fError);
+			mB = dlgMessageBox("Debugger File Error. #"+ mBRst + " error, debugger is closing.");
+			DEBUG_FLAG = 0;
+		}
+	}
+	
+}
+
+
+
+//MAIN PROGRAM
+void main(){
+	if (board){ 
+		
+		// Prelim info for debugger and other uses.
+		board(fB) {
+			board_dir = filedir(fB.name);
+			board_name = fB.name;
+		}
+		// debugger flags
+		if(argv[1] == "debug") DEBUG_FLAG = 1;
+		if (DEBUG_FLAG == 1){
+			if (argv[2] == "running"){
+				debugFirstCall = 0;
+			} else{
+				debug("",1,"");
+			}
+		}
+		int dialogResult = dlgDialog("EagleUp Model Attribute Tool") {
+			string components[]; 	//Contains all components on the board
+			string models[];  		//Contains formatted Model and Directory Entries from ListView
+			string modelsRaw[];		//Contains Raw FileGlob data
+			int modelsDirDepth;		//Directory Depth Level
+			string modelsDirs[];	//Directory Array
+			int compCount = 0;		//Component Counter
+			
+			int messageBox;
+						
+			/* List All Elements and Package Names */
+			board(B){
+				B.elements(E){
+					string temp_str;
+					int attNameFound = 0;
+					temp_str += E.name + "\t";
+					
+					E.attributes(A)	{
+						if ( A.name == "EAGLEUP" ){
+							temp_str += A.value + "\t";
+							attNameFound = 1;
+						}
+					}
+					
+					if (attNameFound == 0) temp_str += "N/A \t";
+					temp_str += E.package.name + "\t";
+					components[compCount++] = temp_str;
+				}
+				
+				
+			};	
+			sort(compCount,components);
+			
+			//Load and Format Root Model Directory
+			int n = fileglob(modelsRaw,modelPath+"/");
+			modelsDirDepth = 0;
+			modelsDirs[modelsDirDepth] = modelPath;
+			models[0] = "#MODEL ROOT";
+			for (int i = 1; i<n; i++){
+				models[i] = strsub(modelsRaw[i-1],strlen(modelPath)-1);
+				string dirTest = models[i];
+				if (dirTest[strlen(models[i])-1] != '/'){  // this moves the directory listing(s) to the top of the listview.
+					models[i] = strsub(models[i],1);
+					
+				}
+			}
+			//ListView Selection Vars
+			int modelSelected = -1;
+			int compSelected = 0;
+			//Main Dialog Code
+			dlgGridLayout{
+				//Component Listview
+				dlgCell(0,3,0,5) dlgListView("Name\tEUP Model\tPackage", components, compSelected);
+				//Model Listview
+				dlgCell(0,0,0,2) dlgListView("Available Models", models, modelSelected) {
+					string currModel = models[modelSelected];
+					if ((currModel != "") && (currModel[0] == ' ')){
+						//Forward Directory Logic
+						if (currModel[1]=='<'){
+							//Empty Models ListView
+							modelsDirDepth--;
+							for (int i = 0; i<n; i++){
+								models[i] = "";
+								modelsRaw[i] = ""; 
+							}
+							//Refill and Format Models ListView 
+							n = fileglob(modelsRaw,modelsDirs[modelsDirDepth]);
+							if (modelsDirDepth == 0){
+								models[0] = "#MODEL ROOT";
+							} else {
+								models[0] = " <= " + strsub(modelsDirs[modelsDirDepth],strlen(modelPath)-1);
+							}
+							int currLVPos = 1; 
+							for (i = 0; i<n; i++){
+								if (fileext(modelsRaw[i]) == ".skp"){
+									models[currLVPos] = strsub(modelsRaw[i],strlen(modelsDirs[modelsDirDepth]));
+									currLVPos++;
+								} else {
+									if (modelsRaw[i][strlen(modelsRaw[i])-1] == '/'){ 
+										models[currLVPos] = strsub(modelsRaw[i],strlen(modelsDirs[modelsDirDepth])-1);
+										currLVPos++;
+									}
+								}
+							}
+							modelSelected = -1;
+							dlgRedisplay();
+						}
+					}
+					else {
+						//Previous Directory Logic
+						if (strrchr(currModel,'/') == strlen(currModel)-1) {
+							//Empty Models ListView
+							modelsDirs[++modelsDirDepth] = modelsRaw[modelSelected-1];
+							for (int i = 0; i<n; i++){
+								models[i] = "";
+								modelsRaw[i] = ""; 
+							}
+							//Refill and Format Models ListView 
+							n = fileglob(modelsRaw,modelsDirs[modelsDirDepth]);
+							models[0] = " <= " + strsub(modelsDirs[modelsDirDepth],strlen(modelPath)-1);
+							int currLVPos = 1; 
+							for (i = 0; i<n; i++){
+								if (fileext(modelsRaw[i]) == ".skp"){
+									models[currLVPos] = strsub(modelsRaw[i],strlen(modelsDirs[modelsDirDepth]));
+									currLVPos++;
+								} else {
+									if (modelsRaw[i][strlen(modelsRaw[i])-1] == '/'){ 
+										models[currLVPos] = strsub(modelsRaw[i],strlen(modelsDirs[modelsDirDepth])-1);
+										currLVPos++;
+									}
+								}
+							}
+							modelSelected = -1;
+							dlgRedisplay();
+						} 
+					}	
+					
+				}
+				dlgCell(1,0,1,2) {
+					// Creates CMD to assign model filename to EAGLEUP attribute
+					dlgPushButton("Assign Model-->"){
+						debug("modelSelected",modelSelected,"");
+						if (modelSelected >= 0 && compSelected >= 0){
+							string modelName[];
+							if (strsplit(modelName,models[modelSelected],'.')>1){
+								string compAry[];
+								int sS = strsplit(compAry,components[compSelected],'\t');
+								if (dlgMessageBox("Assign model file: "+ modelName[0] +" to part: " + compAry[0],"&Yes","&No")==0){
+									if (cmdCount == 0) cmdScript[cmdCount++] = "change display off;";
+									cmdScript[cmdCount++] = "att "+compAry[0] + " EAGLEUP \'" + modelName[0] + "\';"; 
+									updateScript(0);
+									dlgRedisplay();
+								}
+							}
+						}
+					}
+				}
+				dlgCell(1,3,1,5){
+					//Creates CMD to sets EAGLEUP attribute to value "N/A" but does not delete attribute 
+					dlgPushButton("<--Remove Model"){
+						string compAry[];
+						int sS = strsplit(compAry,components[compSelected],'\t');
+						if (dlgMessageBox("Remove model file: "+ compAry[1] +" from part: " + compAry[0],"&Yes","&No")==0){
+							if (cmdCount == 0) cmdScript[cmdCount++] = "change display off;";
+							cmdScript[cmdCount++] = "att "+compAry[0] + " EAGLEUP \'" + "N/A" + "\';"; 
+							updateScript(0);
+							dlgRedisplay();
+						}
+					}
+				}
+				dlgCell(2,0,2,3){
+					dlgVBoxLayout {
+						dlgLabel("Attribute Modification Script");
+						//Displays current CMD Script
+						dlgTextView(cmd);
+					}
+				}
+				dlgCell(2,4,2,5){
+					dlgVBoxLayout{
+						// Runs CMD script and reloads ULP
+						dlgPushButton("Update Models"){
+							string isDebug = "\'normal\'";
+							string callingULPStr = "";
+							if (DEBUG_FLAG == 1) isDebug = "\'debug\'";
+							if (argv[3]!= "") callingULPStr = " \'" + argv[3] + "\'";
+							cmdScript[cmdCount] = "run \'" + argv[0] + "\' " + isDebug + " \'running\' " + callingULPStr;
+							updateScript(0);
+							debug("cmd",0,"\n"+cmd);
+							exit(cmd);
+						}
+						// Runs CMD script and exits ULP
+						dlgPushButton("Assign Models and Exit "){
+							updateScript(1);  // the parameter flags the updatescript function to look for a calling ULP
+							debug("cmd",0,"\n"+cmd);
+							exit(cmd);
+						}
+						// Clears CMD script and exits ULP
+						dlgPushButton("Do Nothing") {
+							cmdCount = 0; //clears all commands
+							updateScript(1);
+							debug("cmd",0,"\n"+cmd);
+							exit(cmd);
+						}
+					}
+				}
+				// ULP INFO
+				dlgCell(3,0,3,5){
+					string infoTag = "<html><table><tr><td width=25%><img width=50 src = \"osi_symbol.png\"</td>";
+						   infoTag += "<td><p align = \"right\"><b>E</b>agle<b>UP</b> <b>M</b>odel <b>A</b>ttribute <b>T</b>ool<br>";
+						   infoTag += "<i>Written by B. Simmons</i> <br> GNU GPL-2 Copyright 2015</p></td></tr></table></html>";
+					dlgLabel(infoTag);
+				}
+			}
+		};
+		//Clears CMD script and exits upon upper-right "X" click
+		if (dialogResult == -1){
+			cmdCount = 0;
+			updateScript(1);
+			exit(cmd);
+		}
+		
+	} 
+	else {
+		int mB = dlgMessageBox("Utility must be run in board editor.");
+		exit(0);
+	}
+}
