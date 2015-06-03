@@ -15,8 +15,11 @@ TASKS
 		# value will contain 115
 		value = attrdict["test"]
 		
+		1.1 - Add EUP Flag to Model Attribute Dictionary on successful EUP_import
+		
 2) Have EUP_importer add Comp names to entities  DONE
+	2.1 - Add JSON like data to the "pcbgroup" or Model object in the Attribute Dictionary for all parts transfered via the EUP.
 
 3) Add all Parts to Model Attribute dictionary
 
-4)Develop Parts view
+4) Develop Parts view

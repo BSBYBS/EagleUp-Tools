@@ -17,8 +17,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDI
 NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 Author: J.Lamy
-Name: eagleUp_import
-Version: 4.5
+Name: eagleUp_import_alpha
+Version: 4.5.1
 SU Version: 8
 =end
 
@@ -929,7 +929,7 @@ end
 
 plugins_menu = UI.menu("Plugins")
 # BS: Modified Menuing system
-eagleUpSM = plugins_menu.add_submenu("eagleUp v4.5")
+eagleUpSM = plugins_menu.add_submenu("eagleUp v4.5.1-alpha")
 
 eagleUpSM.add_item("Import EUP"){
 	eagle_up = EagleUp.new.import()
