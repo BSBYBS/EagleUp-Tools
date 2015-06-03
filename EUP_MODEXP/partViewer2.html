@@ -1,0 +1,46 @@
+<html>
+	<script>
+		function callRuby(actionName) {
+			//query = 'skp:get_data@' + actionName;
+			//window.location.href = query;
+			var table = document.getElementById("partsList");
+			for (var i = 1; i<5;i++){
+				var row = table.insertRow(table.rows.length);
+				var part = row.insertCell(0);
+				var comp = row.insertCell(1);
+				part.innerHTML = "Part"+i;
+				comp.innerHTML = "Comp"+i;
+				row.setAttribute("onmouseover","style.background = 'white'");
+				row.setAttribute("onmouseout","style.background = '#A49D9D'");
+			}
+		}
+		
+			
+		function clearTable(){
+			var table = document.getElementById("partsList");
+			for (var i = table.rows.length-1; i>0; i--){
+				table.deleteRow(i);
+					
+			}
+		}
+		function passFromRubyToJavascript(value) {
+			//var message = "You have " + value + " items selected.";
+			//document.getElementById('output').innerHTML = message;
+			
+		}
+	</script>
+	<body bgcolor="#A49D9D">
+		<input type="button" onclick="callRuby('pull_selection_count')" value="Refresh">
+    	<input type="button" id="Button1" onClick="clearTable()" value="Clear">
+        <table id="partsList" width="200" border="1">
+          <tbody on>
+            <tr>
+              <td width=50% id="hdPartname"><b>Parts</b></td>
+              <td id="hdCompname"><b>Componenets</b></td>
+            </tr>
+          </tbody>
+        </table>
+    
+    
+</body>
+</html>

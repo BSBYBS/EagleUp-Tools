@@ -1,0 +1,12 @@
+<html>
+	<script>
+		function callRuby(actionName) {
+		query = 'skp:get_data@' + actionName;
+		window.location.href = query;
+		}
+	</script>
+	<body>
+		<h3 id="output">You have 0 things selected.</h3>
+		<input type="button" onclick="callRuby('pull_selection_count')" value="Refresh">
+	</body>
+</html>

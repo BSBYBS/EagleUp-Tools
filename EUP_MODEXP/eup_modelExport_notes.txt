@@ -1,5 +1,8 @@
 Tool#2 - EagleUp Reverse Export Tool#2
 
+This will require some modification to the orginal eagleUp_import tool.
+
+
 TASKS
 
 1) Add EUP -> SKP link. Use Model Attribute Dictionary
@@ -12,4 +15,8 @@ TASKS
 		# value will contain 115
 		value = attrdict["test"]
 		
-2) 
+2) Have EUP_importer add Comp names to entities  DONE
+
+3) Add all Parts to Model Attribute dictionary
+
+4)Develop Parts view
